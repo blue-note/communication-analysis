@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 1000px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "id": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "label": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "lynx | Earth +", "label": "lynx | Earth +", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "barton", "label": "barton", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Ben2x4", "label": "Ben2x4", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Maxjuno", "label": "Maxjuno", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "elsehow", "label": "elsehow", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "orkunkle", "label": "orkunkle", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "kain", "label": "kain", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "case", "label": "case", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "riada", "label": "riada", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Naturalist", "label": "Naturalist", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "ethanfrey", "label": "ethanfrey", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Callum", "label": "Callum", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "pyramation", "label": "pyramation", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "de_husk", "label": "de_husk", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "lunarpunk durruti", "label": "lunarpunk durruti", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Musky Melon", "label": "Musky Melon", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "bluenote", "label": "bluenote", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "ekez", "label": "ekez", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "noahsaso", "label": "noahsaso", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "baoskees", "label": "baoskees", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "kyledrake", "label": "kyledrake", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "grubcowboy (\u2728,\ud83d\udd2d)", "label": "grubcowboy (\u2728,\ud83d\udd2d)", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "CauseLessHarmRae", "label": "CauseLessHarmRae", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "aswever", "label": "aswever", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "modern-edamame", "label": "modern-edamame", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Jame5", "label": "Jame5", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "elgorithm", "label": "elgorithm", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "jvanderen1", "label": "jvanderen1", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Griko Nibras", "label": "Griko Nibras", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "gavindoughtie", "label": "gavindoughtie", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "mamimi", "label": "mamimi", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "nova", "label": "nova", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "wearautomatic", "label": "wearautomatic", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Mike Purvis", "label": "Mike Purvis", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "starrybot", "label": "starrybot", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Trevor | Croncat", "label": "Trevor | Croncat", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Gavin | knowable.vc", "label": "Gavin | knowable.vc", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Laura-b", "label": "Laura-b", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "oz", "label": "oz", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "jackzampolin", "label": "jackzampolin", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "TYLANDERR", "label": "TYLANDERR", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Lovis", "label": "Lovis", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "envy", "label": "envy", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "whiskey", "label": "whiskey", "shape": "dot", "size": 10}, {"color": "#97c2fc", "id": "Avicenna", "label": "Avicenna", "shape": "dot", "size": 10}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "lynx | Earth +", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "barton", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "Ben2x4", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "Maxjuno", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "orkunkle", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "kain", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "case", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "case", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "case", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "riada", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "Naturalist", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "ethanfrey", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "Callum", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "pyramation", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "to": "lunarpunk durruti", "width": 1}, {"arrows": "to", "from": "lynx | Earth +", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "barton", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "barton", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "Maxjuno", "to": "Callum", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "Musky Melon", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "ekez", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "ekez", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "case", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "case", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "case", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "case", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "case", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "Callum", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "kyledrake", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "barton", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "grubcowboy (\u2728,\ud83d\udd2d)", "width": 1}, {"arrows": "to", "from": "elsehow", "to": "CauseLessHarmRae", "width": 1}, {"arrows": "to", "from": "Callum", "to": "ekez", "width": 1}, {"arrows": "to", "from": "Callum", "to": "ekez", "width": 1}, {"arrows": "to", "from": "Callum", "to": "ekez", "width": 1}, {"arrows": "to", "from": "Callum", "to": "ekez", "width": 1}, {"arrows": "to", "from": "Callum", "to": "ekez", "width": 1}, {"arrows": "to", "from": "Callum", "to": "ekez", "width": 1}, {"arrows": "to", "from": "Callum", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "Callum", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "Callum", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "Callum", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "Callum", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "Callum", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "Callum", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "Callum", "to": "aswever", "width": 1}, {"arrows": "to", "from": "Callum", "to": "case", "width": 1}, {"arrows": "to", "from": "Callum", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "ekez", "to": "Callum", "width": 1}, {"arrows": "to", "from": "ekez", "to": "Callum", "width": 1}, {"arrows": "to", "from": "ekez", "to": "modern-edamame", "width": 1}, {"arrows": "to", "from": "ekez", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "ekez", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "ekez", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "ekez", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "ekez", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "ekez", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "ekez", "to": "Jame5", "width": 1}, {"arrows": "to", "from": "ekez", "to": "Jame5", "width": 1}, {"arrows": "to", "from": "ekez", "to": "case", "width": 1}, {"arrows": "to", "from": "ekez", "to": "case", "width": 1}, {"arrows": "to", "from": "ekez", "to": "case", "width": 1}, {"arrows": "to", "from": "ekez", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "ekez", "to": "jvanderen1", "width": 1}, {"arrows": "to", "from": "ekez", "to": "Musky Melon", "width": 1}, {"arrows": "to", "from": "ekez", "to": "Griko Nibras", "width": 1}, {"arrows": "to", "from": "ekez", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "ekez", "to": "gavindoughtie", "width": 1}, {"arrows": "to", "from": "ekez", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "ekez", "to": "CauseLessHarmRae", "width": 1}, {"arrows": "to", "from": "Jame5", "to": "ekez", "width": 1}, {"arrows": "to", "from": "Jame5", "to": "ekez", "width": 1}, {"arrows": "to", "from": "Jame5", "to": "ekez", "width": 1}, {"arrows": "to", "from": "Jame5", "to": "ekez", "width": 1}, {"arrows": "to", "from": "Jame5", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "Jame5", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "Jame5", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "Jame5", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "Jame5", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "Jame5", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "mamimi", "to": "Jame5", "width": 1}, {"arrows": "to", "from": "mamimi", "to": "case", "width": 1}, {"arrows": "to", "from": "mamimi", "to": "case", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Callum", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Callum", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "ekez", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "ekez", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "ekez", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "ekez", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "ekez", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "ekez", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "ekez", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "ekez", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "ekez", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "gavindoughtie", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "gavindoughtie", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "gavindoughtie", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Jame5", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Jame5", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Jame5", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Jame5", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Jame5", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Jame5", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Jame5", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "nova", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "nova", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "nova", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "nova", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "nova", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "nova", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "barton", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "barton", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "barton", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "wearautomatic", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "wearautomatic", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "wearautomatic", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "wearautomatic", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "pyramation", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Ben2x4", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Ben2x4", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Ben2x4", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Ben2x4", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "Ben2x4", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "case", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "case", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "case", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "case", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "case", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "grubcowboy (\u2728,\ud83d\udd2d)", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "grubcowboy (\u2728,\ud83d\udd2d)", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "grubcowboy (\u2728,\ud83d\udd2d)", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "grubcowboy (\u2728,\ud83d\udd2d)", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "grubcowboy (\u2728,\ud83d\udd2d)", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "baoskees", "to": "mamimi", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "case", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "case", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "case", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "case", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "case", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "ekez", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "ekez", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "ekez", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "ekez", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "noahsaso", "to": "Mike Purvis", "width": 1}, {"arrows": "to", "from": "nova", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "nova", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "nova", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "nova", "to": "Musky Melon", "width": 1}, {"arrows": "to", "from": "nova", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "nova", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "nova", "to": "barton", "width": 1}, {"arrows": "to", "from": "nova", "to": "case", "width": 1}, {"arrows": "to", "from": "nova", "to": "case", "width": 1}, {"arrows": "to", "from": "nova", "to": "Ben2x4", "width": 1}, {"arrows": "to", "from": "nova", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "nova", "to": "starrybot", "width": 1}, {"arrows": "to", "from": "case", "to": "Maxjuno", "width": 1}, {"arrows": "to", "from": "case", "to": "Maxjuno", "width": 1}, {"arrows": "to", "from": "case", "to": "Maxjuno", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "ekez", "width": 1}, {"arrows": "to", "from": "case", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "case", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "case", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "case", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "case", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "case", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "case", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "case", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "case", "to": "barton", "width": 1}, {"arrows": "to", "from": "case", "to": "barton", "width": 1}, {"arrows": "to", "from": "case", "to": "barton", "width": 1}, {"arrows": "to", "from": "case", "to": "Callum", "width": 1}, {"arrows": "to", "from": "case", "to": "Callum", "width": 1}, {"arrows": "to", "from": "case", "to": "Callum", "width": 1}, {"arrows": "to", "from": "case", "to": "Callum", "width": 1}, {"arrows": "to", "from": "case", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "case", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "case", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "case", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "case", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "case", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "case", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "case", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "case", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "case", "to": "Ben2x4", "width": 1}, {"arrows": "to", "from": "case", "to": "Ben2x4", "width": 1}, {"arrows": "to", "from": "case", "to": "Ben2x4", "width": 1}, {"arrows": "to", "from": "case", "to": "Ben2x4", "width": 1}, {"arrows": "to", "from": "case", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "case", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "case", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "case", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "case", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "case", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "case", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "case", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "case", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "case", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "case", "to": "bluenote", "width": 1}, {"arrows": "to", "from": "case", "to": "Trevor | Croncat", "width": 1}, {"arrows": "to", "from": "case", "to": "kain", "width": 1}, {"arrows": "to", "from": "case", "to": "Naturalist", "width": 1}, {"arrows": "to", "from": "case", "to": "pyramation", "width": 1}, {"arrows": "to", "from": "case", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "case", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "case", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "case", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "case", "to": "modern-edamame", "width": 1}, {"arrows": "to", "from": "case", "to": "Gavin | knowable.vc", "width": 1}, {"arrows": "to", "from": "case", "to": "Laura-b", "width": 1}, {"arrows": "to", "from": "case", "to": "nova", "width": 1}, {"arrows": "to", "from": "case", "to": "mamimi", "width": 1}, {"arrows": "to", "from": "case", "to": "gavindoughtie", "width": 1}, {"arrows": "to", "from": "case", "to": "lunarpunk durruti", "width": 1}, {"arrows": "to", "from": "case", "to": "Mike Purvis", "width": 1}, {"arrows": "to", "from": "case", "to": "CauseLessHarmRae", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "de_husk", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "ekez", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "ekez", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "ekez", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "ekez", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "ekez", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "case", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "case", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "case", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "case", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "case", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "baoskees", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "bluenote", "to": "elgorithm", "width": 1}, {"arrows": "to", "from": "oz", "to": "ekez", "width": 1}, {"arrows": "to", "from": "oz", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "jackzampolin", "to": "TYLANDERR", "width": 1}, {"arrows": "to", "from": "wearautomatic", "to": "case", "width": 1}, {"arrows": "to", "from": "Lovis", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "riada", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "envy", "to": "case", "width": 1}, {"arrows": "to", "from": "envy", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "envy", "to": "elsehow", "width": 1}, {"arrows": "to", "from": "envy", "to": "ekez", "width": 1}, {"arrows": "to", "from": "envy", "to": "ekez", "width": 1}, {"arrows": "to", "from": "envy", "to": "whiskey", "width": 1}, {"arrows": "to", "from": "envy", "to": "Maxjuno", "width": 1}, {"arrows": "to", "from": "envy", "to": "aswever", "width": 1}, {"arrows": "to", "from": "de_husk", "to": "ekez", "width": 1}, {"arrows": "to", "from": "whiskey", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}, {"arrows": "to", "from": "whiskey", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "whiskey", "to": "ekez", "width": 1}, {"arrows": "to", "from": "Avicenna", "to": "noahsaso", "width": 1}, {"arrows": "to", "from": "Avicenna", "to": "Meow  \u2728\ud83d\udd2d\u26b5\u262f", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"barnesHut": {"gravitationalConstant": -24800}, "minVelocity": 0.75}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
